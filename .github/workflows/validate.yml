@@ -1,0 +1,59 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: "20"
+      - run: npm ci
+      # `npm test` is validate + the validator unit tests + the fixture math
+      # check. Previously this step ran `npm run validate` alone, so
+      # scripts/validators/test-entity-continuity-pdr.js never executed in CI.
+      - run: npm test
+
+  # Trusted oracle (hostile-review finding 2, 2026-07-17): a PR can edit the
+  # validator it is checked by, so this job runs the BASE branch's validator,
+  # with dependencies installed from the base lockfile and lifecycle scripts
+  # disabled, against the PR's data tree. This is the required context.
+  validate-trusted:
+    name: validate-trusted
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          path: pr-data
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.base_ref }}
+          path: trusted
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: "20"
+      - run: npm ci --ignore-scripts
+        working-directory: trusted
+      - run: node trusted/scripts/validate-crosswalks.js "$GITHUB_WORKSPACE/pr-data"
+      # Same oracle property for the fixture math: the base branch's checker
+      # recomputes the PR's fixture values, so a PR cannot land drifted numbers
+      # by relaxing the checker in the same commit. Runs unconditionally: the
+      # checker is on main as of 6d577d9, and a missing base copy should fail
+      # loudly, never skip.
+      - name: fixture math (trusted oracle)
+        run: node trusted/scripts/validators/check-handoff-decay-fixtures.js "$GITHUB_WORKSPACE/pr-data"

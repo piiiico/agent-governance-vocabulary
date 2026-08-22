@@ -11,13 +11,13 @@ This is a neutral-ground repo. Multiple vendors contribute. The neutrality is th
 ## Dev environment
 
 - Node.js for the validator (`npm install`, `npm run validate`).
-- `vocab.yaml` is the single canonical term file. Crosswalks and fixtures reference it by term id.
-- Do not bundle multiple projects' vocabularies into `vocab.yaml`. That is an explicit anti-pattern.
+- `vocabulary.yaml` is the single canonical term file. Crosswalks and fixtures reference it by term id.
+- Do not bundle multiple projects' vocabularies into `vocabulary.yaml`. That is an explicit anti-pattern.
 
 ## Test before you ship
 
 - `npm run validate` must exit 0. Expected `_test-invalid.yaml` errors are documented.
-- Fixtures under `fixtures/` must reference term ids that exist in `vocab.yaml`.
+- Fixtures under `fixtures/` must reference term ids that exist in `vocabulary.yaml`.
 
 ## Crosswalk PR checklist (5 checks)
 
@@ -25,8 +25,8 @@ When reviewing an external crosswalk PR, confirm all five before merging:
 
 1. **Identity**: contributor is a verifiable maintainer of the project they are submitting a crosswalk for.
 2. **Format**: crosswalk YAML matches the schema under `docs/crosswalk-format.md`.
-3. **Substance**: concrete endpoints where claimed. Test vector kids match vocab.yaml. Canonical term status requires 2+ independent implementations plus working endpoints. `status: proposed` is fine for early-stage submissions, but `issuers_in_production: []` plus `status: canonical` is a reject.
-4. **Scope**: PR contains ONLY the contributor's own crosswalk. Any attempt to bundle changes to `vocab.yaml` itself is a reject; vocab changes go in a separate PR with separate review.
+3. **Substance**: concrete endpoints where claimed. Test vector kids match vocabulary.yaml. Canonical term status requires 2+ independent implementations plus working endpoints. `status: proposed` is fine for early-stage submissions, but `issuers_in_production: []` plus `status: canonical` is a reject.
+4. **Scope**: PR contains ONLY the contributor's own crosswalk. Any attempt to bundle changes to `vocabulary.yaml` itself is a reject; vocab changes go in a separate PR with separate review.
 5. **Reversibility**: the change can be reverted cleanly. Additive is preferred over destructive.
 
 ## PR instructions
@@ -34,8 +34,8 @@ When reviewing an external crosswalk PR, confirm all five before merging:
 - Title format: `<type>(<scope>): <summary>` per Conventional Commits.
 - Never merge your own PR.
 - External contributors may not push to `main`. They open PRs.
-- Tima reviews every PR touching `vocab.yaml`. External contributors get their own crosswalk file under `crosswalk/<project>.yaml` and should not touch other files.
-- Additions to `vocab.yaml` require explicit spec rationale. A PR adding terms without a note in `docs/rationale/` is incomplete.
+- Tima reviews every PR touching `vocabulary.yaml`. External contributors get their own crosswalk file under `crosswalk/<project>.yaml` and should not touch other files.
+- Additions to `vocabulary.yaml` require explicit spec rationale. A PR adding terms without a note in `docs/rationale/` is incomplete.
 
 ## Code style
 

@@ -6,9 +6,9 @@ This is a neutral-ground repo. Multiple vendors contribute. The neutrality is th
 
 ## Structure
 
-- `vocab.yaml`: the single canonical term file
+- `vocabulary.yaml`: the single canonical term file
 - `crosswalk/<project>.yaml`: per-project mappings into the vocabulary
-- `fixtures/`: test vectors referencing term ids from `vocab.yaml`
+- `fixtures/`: test vectors referencing term ids from `vocabulary.yaml`
 - `docs/`: crosswalk format, rationale notes, contribution guides
 
 ## Canonical references
@@ -34,4 +34,6 @@ Context papers from APS, which this vocabulary serves as one of several crosswal
 - Physics-Enforced Delegation: https://doi.org/10.5281/zenodo.19478584
 - Governance in the Medium: https://doi.org/10.5281/zenodo.19582550
 - Cognitive Attestation: https://doi.org/10.5281/zenodo.19646276
-- IETF Internet-Draft: draft-pidlisnyi-aps-00
+- The Evidence-Safety Gap: https://doi.org/10.5281/zenodo.19914628
+- Plausibly Wrong: https://doi.org/10.5281/zenodo.21208555
+- IETF Internet-Draft: https://datatracker.ietf.org/doc/draft-pidlisnyi-aps/

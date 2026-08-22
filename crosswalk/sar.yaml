@@ -16,9 +16,16 @@
 system: sar
 version: "0.2"
 license: "Apache-2.0"
-maintainer: "nutstrut"
+maintainer:
+  github: nutstrut
+  confirmed_at: "2026-04-16"
 spec_url: "https://github.com/nutstrut/default-settlement-verifier/blob/main/ARCHITECTURE.md"
 repository: "https://github.com/nutstrut/default-settlement-verifier"
+
+system_attributes:
+  signature_capability: classical
+  canonicalization_profile: jcs-rfc-8785
+  hash_family: sha-256
 
 mappings:
   - canonical: settlement_witness

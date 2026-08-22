@@ -1,0 +1,766 @@
+# crosswalk/budget_reservation.yaml
+#
+# Budget Reservation — canonical verb set for the cumulative-spend
+# enforcement layer between agent identity/delegation (APS) and
+# payment-rail settlement (x402, Stripe, ACP, MPP, AP2).
+#
+# Composition: passport (identity + delegation) → budget reservation
+# (cumulative enforcement) → rail (settlement).
+#
+# Structurally different from the per-system forward crosswalks
+# (insumerapi.yaml, satp/, etc.) that map ONE issuer's internal names
+# to the canonical signal-type vocabulary. This file is a
+# canonical-verb-set definition shared across multiple converging
+# implementations and is therefore declared as
+# `crosswalk_type: domain_incubation` (validator Path A silent-skip).
+# Once a third production implementation surfaces and each `proposed`
+# verb gains a second implementer, the file promotes to canonical
+# (see Promotion path below).
+#
+# Public commitment:  agentic-commerce-protocol/agentic-commerce-protocol#231
+# Upstream proposals: google-agentic-commerce/AP2#252 (goodmeta sample,
+#                     rename to `reserve` pending merge)
+#                     aeoess/agent-passport-system#25 (Cycles,
+#                     runcycles.io, @amavashev)
+# Reviewers:          @Ectsang (goodmeta), @amavashev (Cycles)
+#
+# License: Apache-2.0. Copyright 2026 Tymofii Pidlisnyi.
+
+crosswalk_type: domain_incubation
+verified_at: 2026-06-13
+status: INCUBATING
+
+upstream_references:
+  - https://github.com/agentic-commerce-protocol/agentic-commerce-protocol/issues/231
+  - https://github.com/google-agentic-commerce/AP2/pull/252
+  - https://github.com/aeoess/agent-passport-system/issues/25
+
+# Decision shape returned from `reserve` or any budget pre-check.
+# v0.1 freezes the three outcome values; v0.2 codifies the cap-type
+# vocabulary (`cap_vocabulary` below).
+decision_shape:
+  values:
+    - ALLOW
+    - ALLOW_WITH_CAPS
+    - DENY
+  ALLOW_WITH_CAPS_structure:
+    allowed: boolean
+    caps:
+      - type: string                 # native implementer cap key; classified by family — see `cap_vocabulary` below
+        params: object               # caller-defined per cap type
+    reason: string
+    source: string
+
+# Cap-type vocabulary v0.2 — lead-authored by @amavashev (Cycles),
+# superseding the SpendGuard starter-sketch stub (#106). Descriptive
+# only: a naming layer OVER the cap surfaces two shipping
+# budget_reservation implementers already emit — it renames NO wire
+# field (CONTRIBUTING "Out of scope": the vocabulary does not rename
+# values stamped into signed bytes). Grounded in:
+#   - Cycles    `Caps`    — cycles-protocol-v0.yaml L694-713
+#   - SpendGuard `degrade` — agentic-spendguard contract-dsl-spec-v1alpha1.md §11
+#
+# Two families on the receipt-consumer axis: a cap that NARROWS the
+# original action surface vs one that REDIRECTS the action to a
+# substitute target are categorically different audit events. The split
+# lets a consumer tell "ran with narrowed capacity X" from "was
+# redirected to Y" without inspecting a cap-type discriminator after
+# the fact. Classification is at MUTATION-KIND granularity: SpendGuard's
+# single `degrade` effect mutates along kinds that do not all share a
+# family, so each kind is classified on its own.
+cap_vocabulary:
+  status: proposed
+  normative_force: descriptive_only_pending_convergence
+  introduced_by: "#98 (Cycles review, @amavashev — Q3 cap-vocab response)"
+  supersedes: "#106 (SpendGuard starter-sketch stub)"
+  lead_author: "@amavashev (Cycles, runcycles.io)"
+
+  # `family` is CLASSIFICATION METADATA ONLY. Consumers MUST NOT infer
+  # enforcement behavior solely from family membership — it describes how an
+  # audit consumer reads a cap (narrowed-surface vs redirected-target), not a
+  # runtime contract. This is what keeps `receipt_obligation.family_on_wire:
+  # not_required` honest: without it the registry quietly becomes runtime
+  # infrastructure that consumers pin at different versions, and version skew
+  # turns into divergent classification with no failure signal.
+  classification_only: >
+    family is classification metadata only; consumers MUST NOT infer
+    enforcement behavior solely from family membership.
+
+  # A new cap family requires TWO independently implemented examples OR an
+  # explicit incubation rationale recorded in-file.
+  minting_rule: >
+    new cap families require two independently implemented examples or an
+    explicit incubation rationale.
+
+  # `narrow` is minted on its OWN merits: two independent implementers (Cycles
+  # native `Caps` + SpendGuard `degrade` kinds). `redirect` does NOT yet meet
+  # the minting_rule — it has a single implementer (SpendGuard `model_alias`;
+  # no Cycles cap lands there) — so it is admitted as single-implementer
+  # INCUBATION (see `redirect.axis_status` below) under the explicit
+  # incubation-rationale arm of the minting_rule, NOT exempted by a
+  # founding-pair framing. `temperature` is the closest comparison and is
+  # likewise declined as a single-implementer family (stays unclassified).
+
+  # Both groundings are PUBLICLY VERIFIABLE per CONTRIBUTING.md "Evidence
+  # standards": each is an open-source repo pinned to an immutable commit SHA +
+  # locator (not a moving file head), so a reviewer can re-verify byte-level.
+  # Neither rests on principal attestation.
+  grounded_in:
+    - implementer: Cycles
+      verification_method: publicly_verifiable
+      source: "cycles-protocol-v0.yaml#/components/schemas/Caps"
+      pinned: "runcycles/cycles-protocol@62146e1 — cycles-protocol-v0.yaml L818-851"
+      ref: https://github.com/aeoess/agent-passport-system/issues/25
+    - implementer: SpendGuard
+      verification_method: publicly_verifiable
+      source: "agentic-spendguard docs/contract-dsl-spec-v1alpha1.md §11 (degrade effect mutation_kinds)"
+      pinned: "m24927605/agentic-spendguard@8519814 — docs/contract-dsl-spec-v1alpha1.md §11"
+      ref: https://github.com/aeoess/agent-governance-vocabulary/issues/98
+
+  # Decision 2 — namespacing. A `family` DISCRIMINATOR carried as
+  # crosswalk metadata, NOT a wire-key rename. The canonical cap identity
+  # IS the implementer's native field name (`max_tokens`, `model_alias`),
+  # never `narrow.max_tokens`. CONTRIBUTING "Out of scope" forbids
+  # renaming live signed field values, and these caps ride in signed
+  # receipts/envelopes; `family` is derivable metadata layered over them.
+  namespacing:
+    convention: family_discriminator
+    canonical_key: implementer_native_field_name
+    family_field: family
+    rejected:
+      - "`narrow.<cap>` / `redirect.<cap>` key prefixing — renames signed wire fields (CONTRIBUTING out-of-scope)"
+      - "sibling enums per family — fragments the single cap list implementers already emit"
+
+  # Decision 1 — membership. `narrow` has cross-implementer evidence (Cycles +
+  # SpendGuard); `redirect` currently has one member, SpendGuard `model_alias`,
+  # admitted under the single-implementer incubation rationale (axis_status below).
+  families:
+    narrow:
+      intent: |
+        Caps that constrain the original action surface without
+        redirecting. The action still targets its declared
+        route / model / tool; the caps reduce what it may do.
+      implementers: [Cycles, SpendGuard]
+      members:
+        - cap: max_tokens
+          implementer: Cycles
+          params: { value: { type: integer, min: 0 } }
+          note: caps the token budget the action may consume.
+        - cap: max_steps_remaining
+          implementer: Cycles
+          params: { value: { type: integer, min: 0 } }
+          note: caps remaining agent steps.
+        - cap: tool_allowlist
+          implementer: Cycles
+          params: { value: { type: array, items: string } }
+          note: positive tool filter — only listed tools permitted.
+        - cap: tool_denylist
+          implementer: Cycles
+          params: { value: { type: array, items: string } }
+          note: >
+            negative tool filter — listed tools forbidden. A non-empty
+            allowlist takes precedence (Cycles Caps precedence rules).
+        - cap: cooldown_ms
+          implementer: Cycles
+          params: { value: { type: integer, min: 0 } }
+          note: minimum pacing interval before the next action.
+        - cap: max_output_tokens
+          implementer: SpendGuard
+          via: "degrade.mutation_kinds[max_output_tokens]"
+          params: { value: { type: integer, min: 0 } }
+          note: >
+            caps generated output tokens — corroborates the narrow
+            family from a second independent implementer.
+        - cap: reasoning_effort
+          implementer: SpendGuard
+          via: "degrade.mutation_kinds[reasoning_effort]"
+          params: { value: { type: enum, note: implementer-defined effort levels } }
+          note: lowers the reasoning-effort level on the original action.
+    redirect:
+      intent: |
+        Caps that substitute the action's target route / model / tool.
+        The action does not run against its declared target; it runs
+        against the substitute.
+      implementers: [SpendGuard]
+      # Single-implementer INCUBATION: redirect does not yet meet the
+      # two-implementer minting_rule (only SpendGuard model_alias; no Cycles
+      # cap lands here). It stays a named family under the incubation rationale,
+      # and founds first-class only when a second independent implementer ships
+      # a target-substituting cap.
+      axis_status: incubating
+      single_implementer: true
+      founds_when: a second independent implementer emits a target-substituting (redirect-class) cap
+      review_by: 2026-09-11   # re-verify by the file's domain_incubation sunset
+      members:
+        - cap: model_alias
+          implementer: SpendGuard
+          via: "degrade.mutation_kinds[model_alias]"
+          params: { value: { type: string, note: alias of the substitute model } }
+          note: >
+            substitutes the target model. The illustrative `route_to` /
+            `model_to` names from #98 map to this shipped field.
+          observability:
+            substitute_target: the `model_alias` value (the model actually run)
+            note: >
+              redirect receipts CAN surface the substitute target — it is
+              the cap's own param. Downstream cost / reached-confirmation
+              fields stay implementation-defined until a second redirect
+              implementer converges (decision 4).
+      note: >
+        No Cycles cap lands here — Cycles v0 `Caps` is entirely narrow.
+        SpendGuard's `degrade.model_alias` is the sole current member.
+
+  # Caps outside the narrow/redirect axis. Listed explicitly
+  # (honest-gap) rather than forced into a family.
+  unclassified:
+    - cap: temperature
+      implementer: SpendGuard
+      via: "degrade.mutation_kinds[temperature]"
+      rationale: >
+        A sampling-parameter adjustment — it neither narrows the action
+        surface nor substitutes the target. No `tune.*` family is minted
+        for a single single-implementer member; if parameter-tuning caps
+        converge across implementers, a family can be proposed then.
+
+  # Decisions 3-6.
+  decisions:
+    receipt_obligation:               # decision 3
+      family_on_wire: not_required
+      rationale: >
+        `family` is derivable from cap identity by any consumer of this
+        file; requiring it in signed bytes adds an obligation for a value
+        that is already a pure function of the cap type. Implementers MAY
+        emit it; the canonical layer does not require it for v0.2.
+    redirect_observability:           # decision 4
+      status: partially_grounded
+      grounded: the substitute target is the redirect cap's own param (e.g. the `model_alias` value)
+      deferred: downstream cost / reached-confirmation fields — implementation-defined until a second redirect implementer
+    param_shapes:                     # decision 5
+      basis: implementer_native
+      rationale: >
+        each cap's `params` mirrors its native field type verbatim; no
+        canonical reshaping (descriptive_only).
+    composition:                      # decision 6
+      within_family:
+        narrow: most_restrictive_wins   # intersect bounds; a non-empty allowlist overrides a denylist (Cycles precedence)
+      cross_family:
+        # Intra-decision execution order ACROSS families is intentionally NOT
+        # specified here, and carries NO structured order field. No cited
+        # implementer ships a normative intra-decision order: SpendGuard's §10
+        # defines per-cap MERGE across multiple decisions but is silent on
+        # intra-decision order, and the sidecar emits the mutation patch without
+        # an order guarantee. The mutation_kinds were byte-verified; their
+        # execution order was NOT — so recording an order, even as a proposal,
+        # would describe behavior nobody runs and read as registry content a
+        # consumer could build against. An order will be added later, scoped as
+        # DESCRIPTIVE of a specific SpendGuard spec revision once one fixes it,
+        # pinned to that ref. (Prose only, not a rule: a runtime MAY resolve a
+        # redirect kind before a narrow kind so narrowing applies to the
+        # substituted action — but a consuming spec must state whatever order it
+        # uses; the registry imposes none.)
+        unclassified_composition: >
+          composition over unclassified caps (e.g. temperature) is
+          implementation-defined; absent an implementer-stated order it falls
+          back to wire order.
+
+# Verb status convention follows vocabulary.yaml: `candidate` = two
+# production implementations under this canonical name (allowing for
+# in-flight renames); `proposed` = one or zero distinct-verb impls
+# pending convergence.
+verbs:
+
+  reserve:
+    status: candidate
+    status_note: |
+      Promoted from proposed to candidate 2026-05-13 after @Ectsang LGTM
+      on PR #91 confirming goodmeta column accuracy. Two-implementation
+      threshold met: Cycles `reserve` (amavashev, ed0fdb6) + goodmeta
+      `authorize` (Ectsang-confirmed, pre-AP2#252-merge state). Post
+      AP2#252 the goodmeta verb renames to `reserve`; tracked for
+      follow-up PR per Ectsang.
+
+      Evidence-basis annotation (2026-06-12): the goodmeta leg of the
+      2026-05-13 promotion rested on principal attestation (Ectsang
+      LGTM, PR #91), which under the Evidence standards section of
+      CONTRIBUTING.md (adopted 2026-06-12) no longer counts toward
+      promotion arithmetic. The promotion is grandfathered pre-rule;
+      reverify_by: 2026-09-10; status upgrades to rule-conformant on a
+      public artifact or counterparty attestation for the goodmeta leg.
+    definition: >-
+      Hold capacity against delegation budget without spending.
+      Returns reservation_id and expires_at. Headroom allocated,
+      not yet committed in the ledger.
+    implementations:
+      goodmeta: authorize            # rename to `reserve` pending AP2#252 merge
+      cycles: reserve
+    notes: |
+      Two production implementations. AP2#252 rename from
+      `authorize` to `reserve` is pending merge; tracked by @Ectsang.
+
+  commit:
+    status: candidate
+    definition: >-
+      Convert reservation into final spend. References reservation_id.
+      Spend recorded against ledger.
+    implementations:
+      goodmeta: commit
+      cycles: commit
+
+  release:
+    status: proposed
+    definition: >-
+      Return unspent reservation to budget before commit. Pre-commit
+      only. Reservation cancelled, headroom restored.
+    implementations:
+      goodmeta: release (self-attested)
+      cycles: release
+    evidence:
+      goodmeta:
+        verification_method: principal_attestation
+        verified_at: 2026-06-12
+        reverify_after: 2026-09-10
+    notes: |
+      Two implementations recorded: cycles (`release`, source-pinned) and
+      goodmeta (`release`, self-attested, no public artifact). goodmeta
+      added first-class `release` in v0.5 (POST /v1/release), distinct from
+      post-commit `refund`. Pre-commit audit state. Candidate promotion
+      held pending a public stable artifact or an independent counterparty
+      attestation; goodmeta's self-attested cell is weightless for
+      promotion arithmetic (only cycles, source-pinned, counts). Carrying
+      both `release` and `refund` first-class does not by itself assign the
+      `ledger-fidelity` profile (the `minimal` profile carries one); profile
+      selection stays pending per #98.
+
+  refund:
+    status: proposed
+    definition: >-
+      Reverse committed spend. Post-commit only. References committed
+      transaction. Spend reversed in ledger.
+    implementations:
+      goodmeta: refund
+      cycles: '-'                    # no first-class runtime verb; post-commit reversals require admin-plane ledger operations (CREDIT/DEBIT/RESET on the budget)
+    notes: |
+      One production implementation (goodmeta). Post-commit audit
+      state. Layer-separation note: budget-layer refund is a passive
+      ledger restore; rail-layer reversal (chargeback, settlement
+      revoke) is a separate concern at the rail and does not compose
+      through this verb.
+
+  query_budget:
+    status: candidate
+    status_note: |
+      Promoted from proposed to candidate 2026-05-13 after @Ectsang LGTM
+      on PR #91 confirming goodmeta column accuracy. Two-implementation
+      threshold met: Cycles `get_balances` (distinct verb) + goodmeta
+      `query` (multiplexed). Post-AP2#252 the goodmeta verb splits into
+      `query_budget`; tracked for follow-up PR per Ectsang.
+    definition: >-
+      Return current ledger state for a delegation (total committed,
+      total reserved, headroom remaining). Audit snapshot, no state
+      change.
+    implementations:
+      goodmeta: query                # multiplexed via single query verb
+      cycles: get_balances           # distinct verb; GET /v1/balances
+    notes: |
+      Two production implementations. Cycles exposes a distinct
+      `get_balances` verb; goodmeta multiplexes through a single
+      `query` verb. Convergence on the canonical name `query_budget`
+      pending implementer choice.
+
+  query_reservation:
+    status: proposed
+    status_note: |
+      Holds at proposed despite @Ectsang LGTM on goodmeta column accuracy
+      (PR #91 2026-05-13). Goodmeta multiplexes today via
+      `query(reservation_id)`, but per Ectsang post-AP2#252 table the
+      sample drops the analog (only `query_budget()` remains). Promoting
+      now would bind us to a downgrade later. Promotion path: a third
+      implementer ships a distinct query-reservation verb, or AP2#252
+      lands with one in place.
+    definition: >-
+      Return state of a specific reservation by ID. Audit snapshot,
+      no state change.
+    implementations:
+      goodmeta: query(reservation_id)   # multiplexed via single query verb
+      cycles: get_reservation           # distinct verb; GET /v1/reservations/{id}
+    notes: |
+      Two production implementations. Cycles exposes a distinct
+      `get_reservation` verb (plus `list_reservations` for the
+      collection form); goodmeta multiplexes through the single
+      `query` verb with an optional `reservation_id` parameter.
+
+# Reservation lifecycle states + transitions + idempotency contract.
+#
+# v0.1 contribution from SpendGuard (sdk-v0.4.0; Agent Spend Protocol
+# Draft-01 §3.3), brought upstream pre-promotion per #98. Following
+# @amavashev's Cycles review on #98 (the SpendGuard 6-state set
+# diverges from Cycles' 4-state set on grace + overage handling),
+# this section now carries two named lifecycle profiles:
+#
+#   - `minimal`     : 4 states (ACTIVE / COMMITTED / RELEASED /
+#                     EXPIRED). Grace is an HTTP-410 boundary
+#                     contract; overage is a debt-balance signal.
+#                     Implementer: Cycles.
+#   - `grace-split` : 6 states (RESERVED / COMMITTED / RELEASED /
+#                     EXPIRED_IN_GRACE / EXPIRED_BEYOND_GRACE /
+#                     QUARANTINED). Grace and overage are
+#                     observable as distinct states.
+#                     Implementer: SpendGuard.
+#
+# Shared invariants (`dedup_contract`, `ttl_grace`) live at the
+# section root and apply across profiles. Implementations declare
+# their profile via the handshake / discovery surface; adapters
+# dispatch on the declared profile. goodmeta confirmation pending
+# on #98.
+#
+# Per the verb-status convention above, this section sits at
+# `proposed`. Each profile promotes independently once it gains a
+# second implementer; the section as a whole promotes to
+# `candidate` when at least one profile reaches the two-implementer
+# threshold.
+#
+# Layer separation: this section describes the budget-layer state
+# machine only. Rail-layer settlement state (chargeback, irrevocable
+# clearing) is a separate concern per the `refund` verb's notes.
+reservation_lifecycle:
+  status: proposed
+
+  # `normative_force` makes the boundary unambiguous for downstream
+  # readers: the block's CONTENT is descriptive until each profile
+  # gains a second implementer. Distinct from `status` (which tracks
+  # the lifecycle of the section's promotion path itself — proposed →
+  # candidate → canonical per the verb-status convention above).
+  # Downstream code generators / validators SHOULD treat
+  # `descriptive_only_pending_convergence` blocks as documentation
+  # rather than wire-level constants.
+  normative_force: descriptive_only_pending_convergence
+
+  status_note: |
+    `minimal` profile: Cycles (one production implementer).
+    `grace-split` profile: SpendGuard sdk-v0.4.0 (one production
+    implementer). goodmeta profile selection pending on #98.
+
+  # Cross-profile state mapping for adapter authors. Allows an
+  # adapter that knows a counterparty's declared profile to
+  # translate state names without re-implementing the semantics.
+  profile_state_map:
+
+    - minimal: ACTIVE
+      grace_split: RESERVED
+      semantics: capacity held against budget, not yet spent.
+
+    - minimal: COMMITTED
+      grace_split: COMMITTED
+      semantics: capacity spent; terminal.
+
+    - minimal: RELEASED
+      grace_split: RELEASED
+      semantics: capacity returned to budget pre-commit; terminal.
+
+    - minimal: ACTIVE
+      grace_split: EXPIRED_IN_GRACE
+      semantics: |
+        TTL deadline passed but grace window has not closed.
+        Profile `minimal` keeps the reservation as ACTIVE through
+        the grace window (a late `commit` is honored without a
+        state transition; grace is enforced at the HTTP-410
+        boundary). Profile `grace-split` splits this as a distinct
+        state so observers can distinguish on-time commits from
+        grace commits at the audit-chain layer.
+
+    - minimal: EXPIRED
+      grace_split: EXPIRED_BEYOND_GRACE
+      semantics: |
+        TTL + grace both elapsed; terminal. Both profiles return
+        the equivalent error (`RESERVATION_EXPIRED` on the wire).
+
+    - minimal: "(no state; debt accrues on Balance.debt)"
+      grace_split: QUARANTINED
+      semantics: |
+        Overage rejection (`overage_policy: REJECT` and observed
+        commit amount exceeds reservation). Profile `minimal`
+        treats overage as a debt-balance signal: returns
+        HTTP 409 `OVERDRAFT_LIMIT_EXCEEDED`, the reservation
+        stays in its prior state, and `Balance.debt` accumulates;
+        operator escalation surface is the over-limit balance.
+        Profile `grace-split` treats overage as a distinct
+        terminal state (QUARANTINED) requiring explicit operator
+        escalation; the spend is NOT debited.
+
+  named_profiles:
+
+    minimal:
+      implementers: [cycles]
+      canonical_ref: "cycles-protocol-v0.yaml L799 (ReservationStatus)"
+      grace_handling: |
+        Grace is an HTTP-410 boundary contract, not a state. The
+        reservation stays ACTIVE through `expires_at_ms +
+        grace_period_ms`; a late `commit` within the window is
+        honored without a state transition. Once grace lapses, the
+        state transitions to EXPIRED (single terminal) and the
+        wire surface returns `RESERVATION_EXPIRED`.
+      overage_handling: |
+        Overage rejection returns HTTP 409
+        `OVERDRAFT_LIMIT_EXCEEDED`. The reservation stays in its
+        prior state. Debt accumulates on `Balance.debt`; operator
+        escalation surface is the over-limit balance rather than
+        a quarantined reservation.
+      states:
+
+        ACTIVE:
+          definition: >-
+            Capacity held against the budget, not yet spent.
+            Entered via `reserve` with a TTL deadline. Remains
+            ACTIVE through the grace window; transitions out to
+            COMMITTED (via `commit`), RELEASED (via `release`),
+            or EXPIRED (via grace-window close).
+          verb_entry: reserve
+
+        COMMITTED:
+          definition: >-
+            Capacity has been spent. Terminal state. Spend
+            recorded in the ledger. Post-commit reversals are
+            admin-plane ledger operations (CREDIT / DEBIT /
+            RESET), not a runtime state transition.
+          verb_entry: commit
+
+        RELEASED:
+          definition: >-
+            Capacity returned to the budget before commit.
+            Terminal state. The reservation_id is one-shot;
+            further verb calls return the documented dedup or
+            conflict error (see `dedup_contract` at section root).
+          verb_entry: release
+
+        EXPIRED:
+          definition: >-
+            TTL + grace window both elapsed without commit or
+            release. Terminal state. A subsequent `commit` is
+            rejected with `RESERVATION_EXPIRED` at the HTTP-410
+            boundary; the underlying provider call (if it
+            occurred) is the caller's reconciliation problem and
+            is not captured in this state machine.
+          verb_entry: "(grace window close, internal)"
+
+    grace-split:
+      implementers: [spendguard]
+      canonical_ref: "ASP Draft-01 §3.3"
+      grace_handling: |
+        Grace is observable as the distinct EXPIRED_IN_GRACE state
+        at the TTL boundary. The boundary event MUST be emitted
+        regardless of whether a late commit eventually arrives.
+        After the grace window closes without commit, transitions
+        to EXPIRED_BEYOND_GRACE.
+      overage_handling: |
+        Overage rejection transitions the reservation to
+        QUARANTINED. Operator escalation is required; the spend
+        is NOT debited. Distinct from EXPIRED_BEYOND_GRACE because
+        the commit attempt was made within TTL.
+      states:
+
+        RESERVED:
+          definition: >-
+            Capacity is held against the budget but not yet spent.
+            Entered via `reserve` with a TTL deadline. Transitions
+            out to COMMITTED (via `commit`), RELEASED (via
+            `release`), EXPIRED_IN_GRACE (via TTL boundary), or
+            QUARANTINED (via overage policy on commit).
+          verb_entry: reserve
+
+        COMMITTED:
+          definition: >-
+            Capacity has been spent. Terminal state. Spend is
+            recorded in the ledger. A subsequent `refund` reverses
+            the ledger row but does not re-enter this state
+            machine — `refund` is a post-commit reversal verb in
+            its own right.
+          verb_entry: commit
+
+        RELEASED:
+          definition: >-
+            Capacity has been returned to the budget before commit.
+            Terminal state. The reservation_id is one-shot;
+            further verb calls return the documented dedup or
+            conflict error (see `dedup_contract` at section root).
+          verb_entry: release
+
+        EXPIRED_IN_GRACE:
+          definition: >-
+            TTL deadline has passed but the implementation-defined
+            grace window has not closed. A late `commit` within
+            this window is honored; the audit chain MUST emit both
+            the TTL-boundary event AND the late-commit event so
+            observers can distinguish on-time commits from grace
+            commits. After the grace window closes without commit,
+            the state transitions to EXPIRED_BEYOND_GRACE.
+          verb_entry: "(TTL boundary, internal)"
+
+        EXPIRED_BEYOND_GRACE:
+          definition: >-
+            TTL + grace window have both passed without commit or
+            release. Terminal state. A subsequent `commit` is
+            rejected with EXPIRED_BEYOND_GRACE; the underlying
+            provider call (if it occurred) is the caller's
+            reconciliation problem and is not captured in this
+            state machine.
+          verb_entry: "(grace window close, internal)"
+
+        QUARANTINED:
+          definition: >-
+            `commit`'s observed amount exceeded the held
+            reservation, and the budget's overage policy was set
+            to REJECT (the default). Terminal state. The provider
+            call has occurred but the spend was NOT debited;
+            operator escalation is required. Distinct from
+            EXPIRED_BEYOND_GRACE because the commit attempt was
+            made within TTL — the failure mode is overage-on-commit,
+            not lateness.
+          verb_entry: "(commit overage, internal)"
+
+  # Idempotency contract for `commit` and `release` retries.
+  # Shared invariant: applies across both lifecycle profiles. The
+  # wire-level dedup-key shape MAY be implementation-specific but
+  # the three branches below describe the required outcomes any
+  # implementation MUST surface.
+  dedup_contract:
+    key: "(reservation_id, idempotency_key)"
+
+    same_pair_same_body: |
+      Authority returns the original outcome. No new audit event is
+      emitted. Standard network-retry safety.
+
+    same_pair_conflicting_body: |
+      REPLAY_CONFLICT. Authority MUST reject with a typed client
+      error (e.g. gRPC FailedPrecondition) and emit an audit event
+      recording the rejection. Implementations differ on how
+      "body" is canonicalized for hashing; the convention is
+      implementation-defined but MUST be stable across retries
+      from the same caller.
+
+    different_idempotency_key_against_terminal: |
+      RESERVATION_SETTLED / RESERVATION_RELEASED / RESERVATION_EXPIRED
+      depending on the reservation's terminal state under the
+      declared lifecycle profile. Authority MUST reject with a
+      typed client error. A new reservation requires a fresh
+      `reserve` call. The wire-level error class MAY map to a
+      profile-specific terminal name (e.g. `EXPIRED_BEYOND_GRACE`
+      under `grace-split`, `EXPIRED` under `minimal`) but consumers
+      SHOULD branch on the envelope error class rather than the
+      profile-specific terminal name.
+
+  # TTL grace window — shared invariant; bound is profile-specific.
+  # Two named profiles emerged from the SpendGuard / Cycles
+  # convergence on #98:
+  #
+  #   - `tight-grace`   ≤ 60 seconds  (Cycles)
+  #   - `relaxed-grace` ≤ 5 minutes   (SpendGuard)
+  #
+  # Adapters dispatch on the declared profile; the canonical
+  # contract carries both rather than picking a winner.
+  ttl_grace:
+    semantics: |
+      Window between TTL deadline and the terminal expiry state
+      during which a late `commit` is still honored. Observable
+      differently across the two `reservation_lifecycle`
+      profiles: `grace-split` exposes the window as the
+      EXPIRED_IN_GRACE state; `minimal` keeps the reservation
+      in ACTIVE through the window and enforces the boundary at
+      the HTTP-410 layer. In both cases the audit chain MUST
+      emit a boundary event when the TTL deadline elapses,
+      regardless of whether a late commit eventually arrives.
+
+    named_profiles:
+
+      tight-grace:
+        bound: "60 seconds (60000 ms)"
+        philosophy: |
+          Tight grace is a forcing function toward client-driven
+          re-confirmation of intent. For multi-minute operations,
+          clients SHOULD use an `extend` heartbeat (e.g. POST
+          /v1/reservations/{id}/extend) or chunked reserve/commit
+          cycles rather than relying on grace as a long retry
+          envelope.
+        implementers: [cycles]
+        canonical_ref: "cycles-protocol-v0.yaml L832-835 + L846-849"
+
+      relaxed-grace:
+        bound: "5 minutes (300000 ms)"
+        philosophy: |
+          Relaxed grace tolerates slow-commit retries without
+          requiring re-confirmation. Suited to runtime models
+          where the commit lane is network-bound or
+          process-pause tolerant and clients prefer a single
+          retry envelope to a heartbeat.
+        implementers: [spendguard]
+        canonical_ref: "ASP Draft-01 §3.3"
+
+    publication: |
+      Authorities SHOULD publish their declared profile (and
+      effective bound) via a discoverable metadata endpoint so
+      adapters can dispatch retry behavior without inspection.
+      Publication mechanism is implementation-defined;
+      SpendGuard exposes it via the handshake response.
+
+  # Open questions tracked for v0.2 / canonical promotion:
+  open_questions:
+    - |
+      Should `ttl_grace.named_profiles` admit additional bounds
+      (e.g. a `no-grace` profile with bound 0s, or a runtime
+      that publishes a custom bound outside the two named
+      profiles)?
+    - |
+      Overage-handling convergence: `grace-split` makes operator
+      escalation observable as a state (QUARANTINED); `minimal`
+      makes it observable as a debt-balance signal (Balance.debt
+      + HTTP 409). Canonical vocab SHOULD declare whether both
+      patterns remain conformant or whether one becomes the
+      recommended path.
+    - |
+      Cross-profile dedup error envelope: `dedup_contract`
+      currently lets implementers return a profile-specific
+      terminal name in `different_idempotency_key_against_terminal`.
+      Consider tightening to an envelope error class that abstracts
+      over the profile-specific terminal name, with the profile-
+      specific name carried as a structured field.
+    - |
+      goodmeta has not yet confirmed which lifecycle profile it
+      implements (or whether it requires a third variant).
+      Tracking on #98.
+
+stewardship:
+  current:
+    org: aeoess
+    posture: stewarded-public
+    license: Apache-2.0
+  # Observed parallel work; convergence pending engagement.
+  forward_watch:
+    - https://github.com/x402-foundation/x402/issues/2176
+    - https://github.com/second-state/payment-skill/issues/31
+
+# Promotion path — codified as the required `promotion_criteria:` field below
+# (CONTRIBUTING `domain_incubation` gate). Conditions are all-of: every one
+# must hold before the file leaves incubation.
+promotion_criteria:
+  # All-of: every condition must hold before the file leaves incubation.
+  conditions:
+    - id: third_production_implementation
+      condition: >-
+        A third production implementation of the budget-reservation domain
+        surfaces beyond Cycles and goodmeta (candidates:
+        x402-foundation/x402#2176, OpenClaw SpendEnvelope at
+        second-state/payment-skill#31, or a new entrant).
+    - id: proposed_verbs_second_implementer
+      condition: >-
+        Each `proposed` verb gains a second independent implementer.
+    - id: proposed_lifecycle_profiles_second_implementer
+      condition: >-
+        Each `proposed` lifecycle profile gains a second implementer, or the
+        profiles consolidate into a single canonical profile.
+    - id: cap_vocabulary_convergence
+      condition: >-
+        The v0.2 `cap_vocabulary` narrow/redirect families gain >=2 independent
+        implementations that agree on the cap shapes (the block is
+        `descriptive_only_pending_convergence` until then).
+  on_promotion: >-
+    File moves to the standard signal_types shape and enters full validator
+    coverage.
